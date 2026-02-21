@@ -1,20 +1,24 @@
 from langgraph.graph import StateGraph, END
 from src.core.state import AgentState
 from src.agents.researcher import researcher_node
+from src.agents.writer import writer_node # Import the new writer node
 
 # 1. Initialize the Graph with our custom State
 workflow = StateGraph(AgentState)
 
-# 2. Add our first node (The Researcher)
+# 2. Add Nodes
 workflow.add_node("researcher", researcher_node)
+workflow.add_node("writer", writer_node) # Add the Writer node to the graph
 
-# 3. Define the Flow
-# We start with research
+# 3. Define the Flow (Edges)
+# The process starts with the Researcher
 workflow.set_entry_point("researcher")
 
-# For now, since we haven't built the Writer yet, 
-# we will point the researcher directly to END to test it.
-workflow.add_edge("researcher", END)
+# After research is finished, the flow moves to the Writer
+workflow.add_edge("researcher", "writer")
+
+# After the Writer finishes the report, the process ends
+workflow.add_edge("writer", END)
 
 # 4. Compile the graph
 app = workflow.compile()

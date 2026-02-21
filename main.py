@@ -11,7 +11,7 @@ def run_mantiq():
     """
     # 2. Define the initial state (The input task)
     initial_state = {
-        "task": "Current status of AI adoption in Saudi Arabia's government sector 2026",
+        "task": "تحدث عن خطة السعودية 2030",
         "research_data": [],
         "draft": "",
         "feedback": "",
@@ -19,18 +19,24 @@ def run_mantiq():
         "next_step": ""
     }
 
-    # 3. Execute the Graph
+   # 3. Execute the Graph
     print("--- Mantiq-AI: Starting Execution ---")
     
-    # We use .stream to see the output of each node as it happens
     for output in app.stream(initial_state):
         for key, value in output.items():
             print(f"\n[Node: {key}]")
-            # If the node produced research data, let's print a snippet
-            if "research_data" in value:
-                print(f"Data gathered: {len(value['research_data'])} sources found.")
-                for info in value['research_data']:
-                    print(f"- {info[:100]}...") # Print first 100 characters of each finding
+            
+            # 1. Show Research Logs
+            if "research_data" in value and value["research_data"]:
+                print(f"✅ Success: Researcher found {len(value['research_data'])} resources.")
+            
+           # 2. Show the REPORT from the Writer
+            if "draft" in value and value["draft"]:
+                print("\n" + "="*50)
+                print("📝 MANTIQ-AI REPORT DRAFT")
+                print("="*50)
+                print(value["draft"])
+                print("="*50)
 
     print("\n--- Mantiq-AI: Execution Finished ---")
 
