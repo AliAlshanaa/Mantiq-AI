@@ -1,7 +1,10 @@
 langgraph
 langchain-openai
 langchain-community
-
-
+fpdf2
+arabic-reshaper 
+python-bidi
+xhtml2pdf
 tavily-python
 python-dotenv
+pdfkit
