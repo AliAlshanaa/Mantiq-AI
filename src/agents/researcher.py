@@ -13,7 +13,7 @@ def researcher_node(state: AgentState):
     
     try:
         # Execute search
-        response = search_tool.search(query=task, max_results=3)
+        response = search_tool.search(query=task, max_results=5)
         search_results = response.get("results", [])
 
         findings = []

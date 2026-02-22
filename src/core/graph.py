@@ -1,9 +1,11 @@
 from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.memory import MemorySaver
 from src.core.state import AgentState
 from src.agents.researcher import researcher_node
 from src.agents.writer import writer_node
 from src.agents.reviewer import reviewer_node
 from src.agents.saver import saver_node 
+from src.agents.human import human_review_node
 
 def route_after_review(state: AgentState):
     """
@@ -13,8 +15,14 @@ def route_after_review(state: AgentState):
     """
     if state.get("next_step") == "REWRITE":
         return "rewrite"
-    
-    # If approved or max revisions reached, move to saving phase
+    return "human"
+
+def route_after_human(state: AgentState):
+    """
+    Route based on human decision.
+    """
+    if state.get("next_step") == "REWRITE":
+        return "rewrite"
     return "save"
 
 # 1. Initialize the StateGraph
@@ -25,6 +33,7 @@ workflow.add_node("researcher", researcher_node)
 workflow.add_node("writer", writer_node)
 workflow.add_node("reviewer", reviewer_node)
 workflow.add_node("saver", saver_node)  # Added the Saver unit
+workflow.add_node("human_review", human_review_node)
 
 # 3. Define the Entry Point and Static Edges
 workflow.set_entry_point("researcher")
@@ -37,7 +46,17 @@ workflow.add_conditional_edges(
     route_after_review,
     {
         "rewrite": "writer",  # Circular path for revision
-        "save": "saver"       # Path to persistence
+        "human": "human_review"
+    }
+)
+
+# Human-in-the-loop decision
+workflow.add_conditional_edges(
+    "human_review",
+    route_after_human,
+    {
+        "rewrite": "writer",
+        "save": "saver"
     }
 )
 
@@ -46,4 +65,5 @@ workflow.add_conditional_edges(
 workflow.add_edge("saver", END)
 
 # 6. Compile the graph into an executable application
-app = workflow.compile()
+checkpointer = MemorySaver()
+app = workflow.compile(checkpointer=checkpointer)

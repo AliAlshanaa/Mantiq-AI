@@ -19,6 +19,9 @@ class AgentState(TypedDict):
     
     # Constructive feedback or rejection reasons provided by the Reviewer Agent
     feedback: str
+
+    # Human feedback or edits when HITL is enabled
+    human_feedback: str
     
     # Counter to track iterations and prevent infinite loops in the cyclic workflow
     revision_count: int

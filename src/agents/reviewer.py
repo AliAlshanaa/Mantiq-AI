@@ -41,7 +41,7 @@ def reviewer_node(state: AgentState):
     # We limit revisions to 2 to prevent infinite costs or loops
     if "APPROVE" in verdict or iteration >= 2:
         return {
-            "next_step": "FINISH",
+            "next_step": "HUMAN",
             "revision_count": iteration + 1
         }
     else:
