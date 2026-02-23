@@ -2,37 +2,39 @@ from src.core.state import AgentState
 from langchain_openai import ChatOpenAI
 
 def writer_node(state: AgentState):
-    # Extract data from the current state
+    """
+    Writer Node: Synthesizes research and embeds academic citations.
+    """
     research_data = state["research_data"]
+    citations = state.get("citations", [])
     task = state["task"]
     
-    print(f"--- LOG: Mantiq-AI (Writer) is drafting the report for: {task} ---")
+    print(f"--- LOG: Mantiq-AI (Writer) drafting report with citations ---")
     
-    # Prepare the context by joining research findings
     context = "\n".join(research_data)
+    # Create a numbered list of references for the prompt
+    references_str = "\n".join([f"[{i+1}] {cite}" for i, cite in enumerate(citations)])
     
-    # Define the system prompt for the writer agent
     prompt = f"""
-    You are an expert report writer for the "Mantiq-AI" system.
-    Your mission is to write a detailed and organized report based on the following research data:
+    You are a professional report writer. Create a detailed report about: {task}
+    
+    Research Data:
     {context}
     
-    Report Objective: {task}
+    Available Citations (APA):
+    {references_str}
     
-    Writing Requirements:
-    1. Use professional Arabic language.
-    2. Structure the report into: Introduction, Key Points, and Conclusion.
-    3. List the sources used at the end of the report.
+    Requirements:
+    1. Language: Use professional Arabic.
+    2. In-text Citations: You MUST use numbers like [1] or [2] after every claim based on the sources.
+    3. Structure: Introduction, Analysis, and a final "References" (المراجع) section.
+    4. References Section: List all citations in the provided APA format at the end.
     """
     
-    # Initialize the LLM (ensure OPENAI_API_KEY is in your .env)
     llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
-    
-    # Invoke the model to generate the report
     response = llm.invoke(prompt)
    
-   # Return the updated state
     return {
-        "draft": response.content,  # Changed from final_output to draft
-        "next_step": "END"
+        "draft": response.content,
+        "next_step": "REVIEWER"
     }
