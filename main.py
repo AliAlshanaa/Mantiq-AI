@@ -14,7 +14,7 @@ def run_mantiq():
     
     # 2. Define the starting state for the Agentic Workflow
     initial_state = {
-        "task": "طھط­ط¯ط« ط¹ظ† ط®ط·ط© ط§ظ„ط³ط¹ظˆط¯ظٹط© 2030",
+        "task": "    تقرير مفصل حول التحديث عن خطة السعودية 2030",
         "research_data": [],
         "draft": "",
         "feedback": "",
