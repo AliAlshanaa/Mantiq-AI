@@ -1,21 +1,14 @@
 from typing import TypedDict, Annotated, List, Optional
 import operator
 
-
 class AgentState(TypedDict, total=False):
-    """
-    Enterprise State Management for Mantiq-AI.
-
-    Design Principles:
-    - total=False prevents KeyError crashes during partial state updates
-    - Annotated[List[str], operator.add] enables safe accumulation across cycles
-    - Optional fields allow flexible routing between nodes
-    """
-
     # Core Task
     task: str
+    
+    # --- FIX: Adding selected_model to State Schema ---
+    selected_model: str  # To store: 'gemini', 'openai', or 'llama'
 
-    # Accumulative Fields (safe for cyclic graphs)
+    # Accumulative Fields
     research_data: Annotated[List[str], operator.add]
     citations: Annotated[List[str], operator.add]
 
@@ -28,7 +21,7 @@ class AgentState(TypedDict, total=False):
     revision_count: int
     next_step: str
 
-    # Enterprise Extensions (Optional but Recommended)
-    request_id: Optional[str]          # For logging & tracing
-    status: Optional[str]              # RUNNING / REVIEW / APPROVED / SAVED
-    error: Optional[str]               # Error tracking
+    # Enterprise Extensions
+    request_id: Optional[str]
+    status: Optional[str]
+    error: Optional[str]
