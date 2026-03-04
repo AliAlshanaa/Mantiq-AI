@@ -1,75 +1,51 @@
 import os
+from datetime import datetime
 from tavily import TavilyClient
-from langchain_google_genai import ChatGoogleGenerativeAI 
-from langchain_core.messages import BaseMessage
 from src.core.state import AgentState
+from src.database.vector_store import get_retriever
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
-AI_MODEL = os.getenv("AI_MODEL", "gemini-1.5-flash-latest")
 
-# Initialize tools
 search_tool = TavilyClient()
-llm = ChatGoogleGenerativeAI(model=AI_MODEL, temperature=0)
-
-
-def _extract_text_from_llm_response(response) -> str:
-    """Robustly convert any LangChain / Gemini response into plain text."""
-    # Single message object (e.g., AIMessage) – its `.content` may be a string OR a list of chunks.
-    if isinstance(response, BaseMessage):
-        content = getattr(response, "content", "")
-        if isinstance(content, list):
-            parts = []
-            for chunk in content:
-                # Gemini often returns dict chunks: {"type": "text", "text": "..."}
-                if isinstance(chunk, dict) and "text" in chunk:
-                    parts.append(str(chunk["text"]))
-                else:
-                    parts.append(str(chunk))
-            return "\n".join(parts).strip()
-        return str(content).strip()
-
-    # List of messages / chunks / strings
-    if isinstance(response, list):
-        parts = []
-        for item in response:
-            if isinstance(item, BaseMessage):
-                parts.append(_extract_text_from_llm_response(item))
-            else:
-                parts.append(str(item))
-        return "\n".join(parts).strip()
-
-    # Fallback: stringify whatever we got
-    return str(response).strip()
-
+# تقليل الحجم لضمان عدم تجاوز حدود الـ Token في الخطة المجانية
+MAX_CONTENT_CHARS = 2000  
 
 def researcher_node(state: AgentState):
-    """
-    Researcher Node: Fetches data and formats APA citations safely.
-    """
     task = state["task"]
-    print(f"--- LOG: Mantiq-AI (Researcher) processing task: {task} ---")
-    
-    try:
-        # 1. Search using Tavily
-        response = search_tool.search(query=task, max_results=5)
-        search_results = response.get("results", [])
+    print(f"--- LOG: Researcher processing task: {task} ---")
 
-        findings = []
-        formatted_citations = []
+    findings = []
+    formatted_citations = []
+
+    try:
+        # STEP 1: LOCAL RAG
+        print("--- LOG: Searching Local Enterprise Data ---")
+        retriever = get_retriever()
+        # نكتفي بأفضل 3 نتائج فقط لتقليل الضغط
+        local_docs = retriever.invoke(task)[:3] 
+
+        for doc in local_docs:
+            content = doc.page_content[:MAX_CONTENT_CHARS]
+            source_info = doc.metadata.get("source", "Internal DB")
+            findings.append(f"SOURCE: INTERNAL ({source_info})\nCONTENT: {content}")
+            formatted_citations.append(f"{source_info} (Internal Document)")
+
+        # STEP 2: WEB SEARCH
+        print("--- LOG: Augmenting with Web Search ---")
+        try:
+            web_response = search_tool.search(query=task, max_results=2) # نكتفي بنتيجتين
+            search_results = web_response.get("results", [])
+        except Exception as web_error:
+            print(f"--- WARNING: Web search failed: {web_error} ---")
+            search_results = []
 
         for result in search_results:
-            content = result.get("content", "")
+            content = result.get("content", "")[:MAX_CONTENT_CHARS]
             url = result.get("url", "No Source")
-            title = result.get("title", "Unknown Title")
-            findings.append(f"Source: {url}\nContent: {content}")
-
-            # 2. Format Citation via Gemini
-            citation_prompt = f"Convert to APA 7th edition citation: Title: {title}, URL: {url}"
-            res = llm.invoke(citation_prompt)
-            citation_text = _extract_text_from_llm_response(res)
-            formatted_citations.append(citation_text)
+            title = result.get("title", "Web Resource")
+            findings.append(f"SOURCE: WEB ({url})\nCONTENT: {content}")
+            formatted_citations.append(f"{title}. ({datetime.now().year}). Source: {url}")
 
         return {
             "research_data": findings,
@@ -79,4 +55,4 @@ def researcher_node(state: AgentState):
 
     except Exception as e:
         print(f"--- ERROR: Researcher Node failed: {str(e)} ---")
-        return {"research_data": [f"Error: {str(e)}"], "citations": [], "next_step": "Writer"}
+        return {"research_data": [f"Error: {str(e)}"], "next_step": "Writer"}
