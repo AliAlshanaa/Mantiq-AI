@@ -2,7 +2,7 @@ import os
 import time
 from src.core.state import AgentState
 from src.core.factory import create_llm 
-from src.database.db_manager import db  # Import the Database Singleton
+from src.database.db_manager import db  
 from langchain_core.messages import BaseMessage
 from dotenv import load_dotenv
 

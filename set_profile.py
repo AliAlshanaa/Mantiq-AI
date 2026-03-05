@@ -1,7 +1,7 @@
 import sqlite3
 import os
 
-# Database path
+
 DB_PATH = "data/mantiq_enterprise.db"
 
 def initialize_database_if_missing():
