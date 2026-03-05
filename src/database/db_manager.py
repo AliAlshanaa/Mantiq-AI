@@ -1,7 +1,7 @@
 import sqlite3
 import os
 
-# Persistent database path within the project data directory
+# Persistent database path within the project  directory
 DB_PATH = "data/mantiq_enterprise.db"
 
 class DatabaseManager:
