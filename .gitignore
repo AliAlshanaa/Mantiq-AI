@@ -16,7 +16,7 @@ htmlcov/
 .venv/
 venv/
 env/
-
+chroma_db/
 # Jupyter
 .ipynb_checkpoints/
 
