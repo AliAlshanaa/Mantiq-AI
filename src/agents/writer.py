@@ -43,7 +43,7 @@ def writer_node(state: AgentState):
 
     # 4. Prompt Engineering
     prompt = f"""
-    You are a senior industry analyst. Your goal is to write a comprehensive report.
+    You are a senior industry analyst. Your goal is to write a comprehensive report use arabic language.
     
     Task: Write an executive-level report about "{task}".
     
@@ -61,6 +61,10 @@ def writer_node(state: AgentState):
         2. Key Findings
         3. Strategic Implications
         4. References (List them clearly)
+        
+    - Ensure the report is clear, concise, and actionable for business stakeholders.
+    - Do NOT fabricate information. Only use the provided context and citations.
+    - If the context is insufficient, acknowledge it and provide the best possible synthesis.
     """
 
     # 5. LLM Invocation via Factory
