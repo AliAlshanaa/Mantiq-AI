@@ -1,9 +1,10 @@
-# Python
+# --- Python & Cache ---
 __pycache__/
 *.py[cod]
 *.pyd
 *.pyo
 *.so
+*.egg
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
@@ -12,35 +13,40 @@ __pycache__/
 coverage.xml
 htmlcov/
 
-# Virtual environments
+# --- Virtual Environments ---
 .venv/
 venv/
 env/
-chroma_db/
-# Jupyter
-.ipynb_checkpoints/
 
-# Environment files
+# --- Mantiq-AI Databases (CRITICAL) ---
+# Ignore the Vector Database (ChromaDB)
+chroma_db/
+# Ignore the local SQL database (where our mock data and enterprise records live)
+*.db
+!internal_data.db.example  # Optional: keep an example structure but not the data
+
+# --- Environment & Secrets ---
 .env
 .env.*
 !.env.example
 
-# OS / Editor
+# --- OS & Editors ---
 .DS_Store
 Thumbs.db
 *.swp
 .vscode/
 .idea/
 
-# Logs
+# --- Logs ---
 *.log
+logs/
 
-# Build / dist
-build/
-dist/
-*.egg
-
-# Local data / outputs
+# --- Project Specific Outputs ---
 data/
 outputs/
 artifacts/
+# Ignore generated PDF reports
+*.pdf
+
+# --- Jupyter Notebooks ---
+.ipynb_checkpoints/
