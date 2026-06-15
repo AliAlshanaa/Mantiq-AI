@@ -3,6 +3,8 @@ from datetime import datetime
 from tavily import TavilyClient
 from src.core.state import AgentState
 from src.database.vector_store import get_retriever
+from src.database.db_manager import DB_PATH as DEFAULT_SQLITE_DB_PATH
+from src.ingestion.multi_source import ingest_excels, ingest_pdfs, ingest_sqlite
 from dotenv import load_dotenv
 
 # Load environment variables (API Keys & Configs)
@@ -15,6 +17,12 @@ search_tool = TavilyClient()
 MAX_CONTENT_CHARS = 2000  # Cap content length per source
 MAX_LOCAL_DOCS = 3        # Top results from Vector DB
 MAX_WEB_RESULTS = 2       # Top results from Web Search
+MAX_FILE_SNIPPETS = 3     # Top snippets per file-based connector
+
+# Optional multi-source ingestion paths
+PDF_SCAN_DIR = os.getenv("MANTIQ_PDF_DIR", "./data/documents")
+EXCEL_SCAN_DIR = os.getenv("MANTIQ_EXCEL_DIR", "./data/spreadsheets")
+INTERNAL_SQLITE_DB = os.getenv("MANTIQ_INTERNAL_SQLITE_DB", DEFAULT_SQLITE_DB_PATH)
 
 def researcher_node(state: AgentState):
     """
@@ -51,7 +59,50 @@ def researcher_node(state: AgentState):
         except Exception as e:
             print(f"--- ⚠️ WARNING: Local RAG search failed: {e} ---")
 
-        # --- STEP 2: EXTERNAL RETRIEVAL (WEB SEARCH) ---
+        # --- STEP 2: MULTI-SOURCE INGESTION (FILES + INTERNAL DB) ---
+        # These are best-effort connectors; if deps/paths are missing they safely no-op.
+        try:
+            pdf_snippets = ingest_pdfs(
+                task,
+                PDF_SCAN_DIR,
+                max_snippets=MAX_FILE_SNIPPETS,
+                max_content_chars=MAX_CONTENT_CHARS,
+            )
+            for s in pdf_snippets:
+                findings.append(f"SOURCE: PDF ({s.source})\nCONTENT: {s.content}")
+                formatted_citations.append(s.citation)
+        except Exception as e:
+            print(f"--- ⚠️ WARNING: PDF scan failed: {e} ---")
+
+        try:
+            excel_snippets = ingest_excels(
+                task,
+                EXCEL_SCAN_DIR,
+                max_snippets=MAX_FILE_SNIPPETS,
+                max_content_chars=MAX_CONTENT_CHARS,
+            )
+            for s in excel_snippets:
+                findings.append(f"SOURCE: EXCEL ({s.source})\nCONTENT: {s.content}")
+                formatted_citations.append(s.citation)
+        except Exception as e:
+            print(f"--- ⚠️ WARNING: Excel scan failed: {e} ---")
+
+        try:
+            # Avoid noisy self-memory tables by default; this can be overridden by env / schema changes later.
+            sqlite_snippets = ingest_sqlite(
+                task,
+                INTERNAL_SQLITE_DB,
+                max_snippets=MAX_FILE_SNIPPETS,
+                max_content_chars=MAX_CONTENT_CHARS,
+                deny_tables=["user_profile", "task_history"],
+            )
+            for s in sqlite_snippets:
+                findings.append(f"SOURCE: INTERNAL SQLITE ({s.source})\nCONTENT: {s.content}")
+                formatted_citations.append(s.citation)
+        except Exception as e:
+            print(f"--- ⚠️ WARNING: SQLite ingestion failed: {e} ---")
+
+        # --- STEP 3: EXTERNAL RETRIEVAL (WEB SEARCH) ---
         print(f"--- 🌐 LOG: [{selected_model.upper()}] Augmenting with Web Intelligence... ---")
         try:
             # Tavily is used here to get clean, LLM-ready snippets
@@ -72,7 +123,7 @@ def researcher_node(state: AgentState):
             current_year = datetime.now().year
             formatted_citations.append(f"{title}. ({current_year}). Source: {url}")
 
-        # --- STEP 3: CONSOLIDATION & TRANSITION ---
+        # --- STEP 4: CONSOLIDATION & TRANSITION ---
         if not findings:
             findings.append("No specific data found in internal or external sources. Proceeding with general knowledge.")
 
