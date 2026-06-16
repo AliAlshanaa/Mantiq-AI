@@ -50,3 +50,8 @@ artifacts/
 
 # --- Jupyter Notebooks ---
 .ipynb_checkpoints/
+
+# --- Diagnostic / Debug Scripts ---
+diag_*.py
+check_db.py
+stdin_input.txt
