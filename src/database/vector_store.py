@@ -17,6 +17,10 @@ CHUNK_SIZE = 800
 CHUNK_OVERLAP = 80
 TOP_K = 3
 
+# Hybrid search weights: BM25 (keyword) + Vector (semantic)
+BM25_WEIGHT = 0.4
+VECTOR_WEIGHT = 0.6
+
 
 # -----------------------------
 # Initialize Local Vector DB
@@ -113,6 +117,68 @@ def get_retriever():
     )
 
     return vector_db.as_retriever(search_kwargs={"k": TOP_K})
+
+
+# -----------------------------
+# Hybrid Retriever (BM25 + Vector)
+# -----------------------------
+
+def get_hybrid_retriever(
+    bm25_weight: float = BM25_WEIGHT,
+    vector_weight: float = VECTOR_WEIGHT,
+):
+    """
+    EnsembleRetriever that fuses BM25 keyword search with Chroma semantic search.
+
+    BM25 excels at exact-term matches (names, codes, technical jargon).
+    Vector search excels at semantic similarity (paraphrasing, concepts).
+    Combining both covers gaps each method has alone.
+
+    Falls back to pure vector retriever if rank-bm25 is not installed or the
+    corpus is empty.
+    """
+    if not os.path.exists(PERSIST_DIRECTORY) or not os.listdir(PERSIST_DIRECTORY):
+        raise RuntimeError(
+            "Vector database not initialized. Run initialize_local_vector_db() first."
+        )
+
+    embeddings = HuggingFaceEmbeddings(model_name=MODEL_NAME)
+    vector_db = Chroma(
+        persist_directory=PERSIST_DIRECTORY,
+        embedding_function=embeddings,
+    )
+    vector_retriever = vector_db.as_retriever(search_kwargs={"k": TOP_K})
+
+    try:
+        from langchain_community.retrievers import BM25Retriever
+        from langchain_classic.retrievers.ensemble import EnsembleRetriever
+        from langchain_core.documents import Document
+
+        # Rebuild corpus from the persisted Chroma collection
+        chroma_data = vector_db.get()
+        docs = [
+            Document(page_content=text, metadata=meta or {})
+            for text, meta in zip(
+                chroma_data.get("documents", []),
+                chroma_data.get("metadatas", []),
+            )
+            if text
+        ]
+
+        if not docs:
+            print("--- Hybrid: corpus empty, using pure vector retriever ---")
+            return vector_retriever
+
+        bm25_retriever = BM25Retriever.from_documents(docs, k=TOP_K)
+
+        return EnsembleRetriever(
+            retrievers=[bm25_retriever, vector_retriever],
+            weights=[bm25_weight, vector_weight],
+        )
+
+    except ImportError:
+        print("--- rank-bm25 not installed, falling back to vector-only retriever ---")
+        return vector_retriever
 
 
 # -----------------------------

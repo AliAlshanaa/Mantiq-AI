@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from tavily import TavilyClient
 from src.core.state import AgentState
-from src.database.vector_store import get_retriever
+from src.database.vector_store import get_hybrid_retriever
 from src.database.db_manager import DB_PATH as DEFAULT_SQLITE_DB_PATH
 from src.ingestion.multi_source import ingest_excels, ingest_pdfs, ingest_sqlite
 from dotenv import load_dotenv
@@ -50,9 +50,9 @@ def researcher_node(state: AgentState):
         # --- STEP 1: INTERNAL RETRIEVAL (LOCAL RAG) ---
         print(f"--- 📂 LOG: [{selected_model.upper()}] Querying Enterprise Vector Store... ---")
         try:
-            retriever = get_retriever()
-            # Retrieve relevant chunks from local PDF/Markdown files
-            local_docs = retriever.invoke(task)[:MAX_LOCAL_DOCS] 
+            retriever = get_hybrid_retriever()
+            # Hybrid BM25 + vector retrieval for better keyword/semantic coverage
+            local_docs = retriever.invoke(task)[:MAX_LOCAL_DOCS]
 
             for doc in local_docs:
                 content = doc.page_content[:MAX_CONTENT_CHARS]
