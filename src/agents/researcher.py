@@ -19,8 +19,12 @@ MAX_LOCAL_DOCS = 3        # Top results from Vector DB
 MAX_WEB_RESULTS = 2       # Top results from Web Search
 MAX_FILE_SNIPPETS = 3     # Top snippets per file-based connector
 
-# Optional multi-source ingestion paths
-PDF_SCAN_DIR = os.getenv("MANTIQ_PDF_DIR", "./data/documents")
+# Optional multi-source ingestion paths.
+# PDF_SCAN_DIR intentionally defaults to a separate directory from the vector store
+# (./data/documents) to avoid returning duplicate citations for already-indexed PDFs.
+# Set MANTIQ_PDF_DIR to ./data/documents only if you want page-level re-scanning of
+# indexed files in addition to the vector-RAG results from STEP 1.
+PDF_SCAN_DIR = os.getenv("MANTIQ_PDF_DIR", "./data/unindexed_docs")
 EXCEL_SCAN_DIR = os.getenv("MANTIQ_EXCEL_DIR", "./data/spreadsheets")
 INTERNAL_SQLITE_DB = os.getenv("MANTIQ_INTERNAL_SQLITE_DB", DEFAULT_SQLITE_DB_PATH)
 
