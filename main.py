@@ -21,7 +21,7 @@ def run_mantiq():
 
     # --- Step 2: Initialize State ---
     initial_state = {
-        "task": "تقرير مفصل حول التحديث عن خطة السعودية 2030",
+        "task": "  35من هو علي الشناعه ",
         "selected_model": selected_provider, # Injecting the choice into the graph state
         "research_data": [],
         "citations": [],
